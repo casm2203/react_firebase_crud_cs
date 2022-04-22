@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { nanoid } from 'nanoid'
 import { db } from '../firebase/firebaseConfig'
 import {
+    getDocs,
     collection,
     addDoc,
-    getDocs,
+    doc,
+    deleteDoc,
 } from "firebase/firestore";
-
-
+import { nanoid } from 'nanoid';
 
 const formBill = {
     "id": null,
@@ -30,7 +30,7 @@ const Factura = () => {
                 const querySnapshot = await getDocs(collection(db, "bills"));
                 const array = querySnapshot.docs.map(item => (
                     {
-                        id: item.id, ...item.data()
+                        ...item.data(), id: item.id,
                     }
                 ))
                 setDbs(array)
@@ -44,22 +44,33 @@ const Factura = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        if (!form.name_company || !form.nit || !form.bill_value) {
+            alert("Datos incompletos, Por favor validar la información ingresada");
+            return;
+        }
         try {
-            let created = new Date().toISOString().split('T')[0]
-            setForm({
-
-                ...form
-            })
+            let created = new Date().toISOString().split('T')[0];
             await addDoc(collection(db, "bills"), { ...form, id: nanoid(), created_at: created });
-            setDbs([...dbs, form]);
-            console.log(form)
+            setDbs([...dbs, { ...form, created_at: created }]);
+            alert("Se agregó una nueva factura");
+            console.log(form);
         } catch (error) {
-            console.log(error)
+            console.log(error);
         }
 
+        handleReset();
     };
 
+    const deleteData = async (id) => {
+        try {
+            console.log(id, "id a borrar")
+            await deleteDoc(doc(db, "bills", id));
+            let newData = dbs.filter((el) => (el.id === id ? null : el));
+            setDbs(newData);
+        } catch (e) {
+            console.error("Error adding document: ", e);
+        }
+    };
 
     const handleChange = (e) => {
         setForm({
@@ -68,20 +79,20 @@ const Factura = () => {
         });
     };
 
-    //  const handleReset = (e) => {
-    //      setForm(formBill);
-    //  };
+    const handleReset = (e) => {
+        setForm(formBill);
+    };
+
     console.log(dbs, "informacion firebase")
+
     return (
-
-
         <div className="container-fluid">
             <div className="row mt-3">
                 <div className="col shadow-sm p-3 mb-5 bg-body rounded">
                     <div className="container">
                         <div className="row">
                             {dbs.map(({ id, name_company, nit, state, created_at, type_company, payment_method, bill_value }) => (
-                                <div className="col-6 mb-1">
+                                <div className="col-6 mb-1" key={id}>
                                     <div className="card" >
                                         <div className="card-body">
                                             <h5 className="card-title"><img src='https://img.icons8.com/cotton/128/invoice.png' alt='icon' width="24" height="24" />  {name_company}</h5>
@@ -93,7 +104,7 @@ const Factura = () => {
                                             <p className="card-text"><strong>Valor de factura:</strong> {bill_value}</p>
                                             <div className="btn-group btn-group-sm" role="group" aria-label="Basic mixed styles example">
                                                 <button type="button" className="btn btn-warning">Editar</button>
-                                                <button type="button" className="btn btn-danger">Eliminar</button>
+                                                <button onClick={() => deleteData(id)} className="btn btn-danger">Eliminar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -106,15 +117,15 @@ const Factura = () => {
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
                             <label className="form-label">Nombre de la empresa:</label>
-                            <input placeholder='Nombre de la empresa' onChange={handleChange} defaultValue={form.name_company} name="name_company" className="form-control" />
+                            <input type="text" placeholder='Nombre de la empresa' onChange={handleChange} value={form.name_company} name="name_company" className="form-control" />
                         </div>
                         <div className="mb-3">
                             <label className="form-label">NIT:</label>
-                            <input placeholder='NIT' onChange={handleChange} defaultValue={form.nit} name="nit" className="form-control" />
+                            <input type="text"  placeholder='NIT' onChange={handleChange} value={form.nit} name="nit" className="form-control" />
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Tipo de empresa:</label>
-                            <select onChange={handleChange} defaultValue={form.type_company} name="type_company" className="form-select" >
+                            <select required onChange={handleChange} value={form.type_company} name="type_company" className="form-select" >
                                 <option value=""></option>
                                 <option value="Privada">Privada</option>
                                 <option value="Publica">Publica</option>
@@ -123,7 +134,7 @@ const Factura = () => {
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Estado factura:</label>
-                            <select onChange={handleChange} defaultValue={form.state} name="state" className="form-select">
+                            <select required onChange={handleChange} value={form.state} name="state" className="form-select">
                                 <option value=""></option>
                                 <option value="Pendiente pago">Pendiente pago</option>
                                 <option value="Pagado">Pagado</option>
@@ -132,7 +143,7 @@ const Factura = () => {
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Medio de pago</label>
-                            <select onChange={handleChange} defaultValue={form.payment_method} name="payment_method" className="form-select">
+                            <select required onChange={handleChange} value={form.payment_method} name="payment_method" className="form-select">
                                 <option value=""></option>
                                 <option value="Efectivo">Efectivo</option>
                                 <option value="Debito">Debito</option>
@@ -141,16 +152,14 @@ const Factura = () => {
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Valor de factura:</label>
-                            <input placeholder='Valor de factura' defaultValue={form.bill_value} name="bill_value" className="form-control" />
+                            <input type="text"  placeholder='Valor de factura' onChange={handleChange} value={form.bill_value} name="bill_value" className="form-control" />
                         </div>
-                        <button className="btn btn-primary" type='submit'>Enviar</button>
+                        <button className="btn btn-primary" type='submit' >Enviar</button>
                     </form>
                 </div>
 
             </div>
         </div >
-
-
     )
 }
 
