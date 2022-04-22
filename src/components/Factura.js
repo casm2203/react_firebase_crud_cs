@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { db } from '../firebase/firebaseConfig'
 import {
+    doc,
     getDocs,
     collection,
     addDoc,
-    doc,
+    updateDoc,
     deleteDoc,
 } from "firebase/firestore";
 import { nanoid } from 'nanoid';
@@ -23,6 +24,7 @@ const formBill = {
 const Factura = () => {
     const [form, setForm] = useState(formBill);
     const [dbs, setDbs] = useState([]);
+    const [edit, setEdit] = useState(true)
 
     useEffect(() => {
         const obtenerDatos = async () => {
@@ -48,14 +50,26 @@ const Factura = () => {
             alert("Datos incompletos, Por favor validar la información ingresada");
             return;
         }
-        try {
-            let created = new Date().toISOString().split('T')[0];
-            await addDoc(collection(db, "bills"), { ...form, id: nanoid(), created_at: created });
-            setDbs([...dbs, { ...form, created_at: created }]);
-            alert("Se agregó una nueva factura");
-            console.log(form);
-        } catch (error) {
-            console.log(error);
+        if (edit) {
+            try {
+                const updateBill = doc(db, "bills", form.id);
+                await updateDoc(updateBill, form);
+                let newData = dbs.map((el) => (el.id === form.id ? form : el));
+                setDbs(newData);
+                setEdit(false)
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            }
+        } else {
+            try {
+                let created = new Date().toISOString().split('T')[0];
+                await addDoc(collection(db, "bills"), { ...form, id: nanoid(), created_at: created });
+                setDbs([...dbs, { ...form, created_at: created }]);
+                alert("Se agregó una nueva factura");
+                console.log(form);
+            } catch (error) {
+                console.log(error);
+            }
         }
 
         handleReset();
@@ -72,6 +86,12 @@ const Factura = () => {
         }
     };
 
+    const formUpdate = (data) => {
+        console.log(data)
+        setForm(data);
+        setEdit(true);
+    };
+
     const handleChange = (e) => {
         setForm({
             ...form,
@@ -81,6 +101,7 @@ const Factura = () => {
 
     const handleReset = (e) => {
         setForm(formBill);
+        setEdit(false)
     };
 
     console.log(dbs, "informacion firebase")
@@ -103,8 +124,8 @@ const Factura = () => {
                                             <p className="card-text"><strong>Fecha de la factura:</strong> {created_at}</p>
                                             <p className="card-text"><strong>Valor de factura:</strong> {bill_value}</p>
                                             <div className="btn-group btn-group-sm" role="group" aria-label="Basic mixed styles example">
-                                                <button type="button" className="btn btn-warning">Editar</button>
-                                                <button onClick={() => deleteData(id)} className="btn btn-danger">Eliminar</button>
+                                                <button onClick={() => formUpdate({ id, name_company, nit, state, created_at, type_company, payment_method, bill_value })} type="button" className="btn btn-warning">Editar</button>
+                                                <button onClick={() => deleteData(id)} type="button" className="btn btn-danger">Eliminar</button>
                                             </div>
                                         </div>
                                     </div>
@@ -114,6 +135,8 @@ const Factura = () => {
                     </div>
                 </div>
                 <div className="col shadow-sm p-3 mb-5 bg-body rounded">
+                    <h3>{edit ? "Editar Factura" : "Agregar Factura"}</h3>
+                    <hr />
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
                             <label className="form-label">Nombre de la empresa:</label>
@@ -121,7 +144,7 @@ const Factura = () => {
                         </div>
                         <div className="mb-3">
                             <label className="form-label">NIT:</label>
-                            <input type="text"  placeholder='NIT' onChange={handleChange} value={form.nit} name="nit" className="form-control" />
+                            <input type="text" placeholder='NIT' onChange={handleChange} value={form.nit} name="nit" className="form-control" />
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Tipo de empresa:</label>
@@ -152,9 +175,10 @@ const Factura = () => {
                         </div>
                         <div className="mb-3">
                             <label className="form-label">Valor de factura:</label>
-                            <input type="text"  placeholder='Valor de factura' onChange={handleChange} value={form.bill_value} name="bill_value" className="form-control" />
+                            <input type="text" placeholder='Valor de factura' onChange={handleChange} value={form.bill_value} name="bill_value" className="form-control" />
                         </div>
-                        <button className="btn btn-primary" type='submit' >Enviar</button>
+                        {edit ? <div><button className="btn btn-warning" type='submit' >Editar</button> <button onClick={handleReset}  className="btn btn-dark"  >Cancelar</button></div> : <button className="btn btn-primary" type='submit' >Enviar</button>}
+
                     </form>
                 </div>
 
