@@ -71,7 +71,6 @@ const Factura = () => {
                 const docRef = await addDoc(collection(db, "bills"), { ...form, id: nanoid(), created_at: created });
                 setDbs([...dbs, { ...form, created_at: created, id: docRef.id }]);
                 alert("Se agregó una nueva factura");
-                console.log(form);
             } catch (error) {
                 console.log(error);
             }
@@ -83,7 +82,6 @@ const Factura = () => {
     //Eliminar dato
     const deleteData = async (id) => {
         try {
-            console.log(id, "id a borrar")
             await deleteDoc(doc(db, "bills", id));
             let newData = dbs.filter((el) => (el.id === id ? null : el));
             setDbs(newData);

@@ -1,0 +1,5 @@
+Taller React_firebase_crud
+Autor: Cristian Suarez
+Repositorio: https://github.com/casm2203/react_firebase_crud_cs
+Netlify: https://ubiquitous-nougat-7ebbd9.netlify.app/
+Amplify: https://main.d2iuc7xun44i0j.amplifyapp.com/
